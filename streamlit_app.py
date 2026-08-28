@@ -18,7 +18,7 @@ st.set_page_config(
 # ==============================
 
 st.title("📦 Consulta de Validade da Carga")
-st.write("Informe o número da Guia para verificar a carga.")
+st.write("Informe até 5 números de Guia para verificar a carga.")
 
 # ==============================
 # CARREGAR A PLANILHA
@@ -57,13 +57,21 @@ def carregar_planilha(caminho_arquivo):
 base = carregar_planilha(arquivo)
 
 # ==============================
-# CAMPO DA GUIA
+# CAMPOS DAS GUIAS
 # ==============================
 
-guia = st.text_input(
-    "Número da Guia",
-    placeholder="Digite o número da Guia"
-)
+colunas_guias = st.columns(5)
+guias = []
+
+for indice, coluna in enumerate(colunas_guias, start=1):
+    with coluna:
+        guias.append(
+            st.text_input(
+                f"Guia {indice}",
+                placeholder="Número da Guia",
+                key=f"guia_{indice}"
+            )
+        )
 
 # ==============================
 # BOTÃO CONSULTAR
@@ -71,10 +79,10 @@ guia = st.text_input(
 
 if st.button("🔎 CONSULTAR", type="primary"):
 
-    numero_guia = str(guia).strip()
+    numeros_guias = [str(numero).strip() for numero in guias if str(numero).strip()]
 
-    if numero_guia == "":
-        st.warning("⚠️ Digite o número da Guia.")
+    if not numeros_guias:
+        st.warning("⚠️ Digite pelo menos um número de Guia.")
 
     else:
 
@@ -82,8 +90,10 @@ if st.button("🔎 CONSULTAR", type="primary"):
         # CONSULTA
         # ==============================
 
-        resultado = base[
-            base["Guia"] == numero_guia
+        resultado = base[base["Guia"].isin(numeros_guias)]
+        guias_nao_encontradas = [
+            numero for numero in numeros_guias
+            if numero not in set(resultado["Guia"])
         ]
 
         # ==============================
@@ -92,14 +102,14 @@ if st.button("🔎 CONSULTAR", type="primary"):
 
         if resultado.empty:
 
-            st.error("❌ Guia não encontrada.")
+            st.error("❌ Nenhuma guia encontrada.")
 
             st.info(
-                "Verifique se o número da Guia foi digitado corretamente."
+                "Verifique se os números das Guias foram digitados corretamente."
             )
 
         # ==============================
-        # GUIA ENCONTRADA
+        # GUIAS ENCONTRADAS
         # ==============================
 
         else:
@@ -110,8 +120,8 @@ if st.button("🔎 CONSULTAR", type="primary"):
 
             with col1:
                 st.metric(
-                    "Número da Guia",
-                    numero_guia
+                    "Guias encontradas",
+                    resultado["Guia"].nunique()
                 )
 
             with col2:
@@ -127,3 +137,9 @@ if st.button("🔎 CONSULTAR", type="primary"):
                 use_container_width=True,
                 hide_index=True
             )
+
+            if guias_nao_encontradas:
+                st.warning(
+                    "Guias não encontradas: "
+                    + ", ".join(guias_nao_encontradas)
+                )
