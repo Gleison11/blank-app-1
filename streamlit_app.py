@@ -24,7 +24,7 @@ st.write("Informe até 5 números de Guia para verificar a carga.")
 # CARREGAR A PLANILHA
 # ==============================
 
-arquivo = Path(__file__).parent / "DCP - Estoque em Trânsito_CD x Loja_Tabela (1).csv"
+arquivo = Path(__file__).parent / "Atualização1.csv"
 
 @st.cache_data
 def carregar_planilha(caminho_arquivo):
