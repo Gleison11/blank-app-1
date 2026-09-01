@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 # ==============================
 # CONFIGURAÇÃO DA PÁGINA
@@ -10,21 +10,53 @@ import pandas as pd
 st.set_page_config(
     page_title="Consulta de Validade",
     page_icon="📦",
-    layout="wide"
+    layout="wide",
+)
+
+st.markdown(
+    """
+    <style>
+        .stApp {
+            background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+        }
+        .main {
+            background: transparent;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+        .label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .subtext {
+            color: #475569;
+            font-size: 0.98rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 # ==============================
 # TÍTULO
 # ==============================
 
+st.markdown('<div class="card">', unsafe_allow_html=True)
 st.title("📦 Consulta de Validade da Carga")
-st.write("Informe até 5 números de Guia para verificar a carga.")
+st.caption("Consulte os registros por uma loja específica.")
 
 # ==============================
 # CARREGAR A PLANILHA
 # ==============================
 
 arquivo = Path(__file__).parent / "Atualização1.csv"
+
 
 @st.cache_data
 def carregar_planilha(caminho_arquivo):
@@ -36,20 +68,19 @@ def carregar_planilha(caminho_arquivo):
         caminho_arquivo,
         sep=";",
         encoding="utf-8-sig",
-        dtype={"Guia": str}
+        dtype={"Guia": str, "Loja": str},
     )
 
-    # Limpa nomes das colunas
     base.columns = base.columns.astype(str).str.strip()
 
-    # Padroniza a coluna Guia
-    if "Guia" in base.columns:
-        base["Guia"] = (
-            base["Guia"]
-            .astype(str)
-            .str.strip()
-            .str.replace(".0", "", regex=False)
-        )
+    for coluna in ["Guia", "Loja"]:
+        if coluna in base.columns:
+            base[coluna] = (
+                base[coluna]
+                .astype(str)
+                .str.strip()
+                .str.replace(".0", "", regex=False)
+            )
 
     return base
 
@@ -57,89 +88,46 @@ def carregar_planilha(caminho_arquivo):
 base = carregar_planilha(arquivo)
 
 # ==============================
-# CAMPOS DAS GUIAS
+# FORMULÁRIO DE CONSULTA
 # ==============================
 
-colunas_guias = st.columns(5)
-guias = []
+with st.form("consulta_loja"):
+    loja = st.text_input(
+        "Número da Loja",
+        placeholder="Digite o número da loja",
+        max_chars=20,
+    )
+    enviado = st.form_submit_button("🔎 CONSULTAR", use_container_width=True)
 
-for indice, coluna in enumerate(colunas_guias, start=1):
-    with coluna:
-        guias.append(
-            st.text_input(
-                f"Guia {indice}",
-                placeholder="Número da Guia",
-                key=f"guia_{indice}"
-            )
-        )
+if enviado:
+    numero_loja = loja.strip()
 
-# ==============================
-# BOTÃO CONSULTAR
-# ==============================
-
-if st.button("🔎 CONSULTAR", type="primary"):
-
-    numeros_guias = [str(numero).strip() for numero in guias if str(numero).strip()]
-
-    if not numeros_guias:
-        st.warning("⚠️ Digite pelo menos um número de Guia.")
-
+    if not numero_loja:
+        st.warning("⚠️ Digite o número da loja antes de consultar.")
     else:
-
-        # ==============================
-        # CONSULTA
-        # ==============================
-
-        resultado = base[base["Guia"].isin(numeros_guias)]
-        guias_nao_encontradas = [
-            numero for numero in numeros_guias
-            if numero not in set(resultado["Guia"])
-        ]
-
-        # ==============================
-        # GUIA NÃO ENCONTRADA
-        # ==============================
+        resultado = base[base["Loja"].astype(str).str.strip().eq(numero_loja)]
 
         if resultado.empty:
-
-            st.error("❌ Nenhuma guia encontrada.")
-
-            st.info(
-                "Verifique se os números das Guias foram digitados corretamente."
-            )
-
-        # ==============================
-        # GUIAS ENCONTRADAS
-        # ==============================
-
+            st.error("❌ Nenhuma loja encontrada.")
+            st.info("Verifique se o número da loja foi digitado corretamente.")
         else:
-
+            st.markdown("<div class='card'>", unsafe_allow_html=True)
             st.error("🔴 ATENÇÃO — CARGA COM ITENS CRÍTICOS")
 
-            col1, col2 = st.columns(2)
-
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric(
-                    "Guias encontradas",
-                    resultado["Guia"].nunique()
-                )
-
+                st.metric("Loja consultada", numero_loja)
             with col2:
-                st.metric(
-                    "Registros encontrados",
-                    len(resultado)
-                )
+                st.metric("Guias encontradas", resultado["Guia"].nunique())
+            with col3:
+                st.metric("Registros encontrados", len(resultado))
 
             st.subheader("📋 Itens encontrados")
-
             st.dataframe(
-                resultado,
+                resultado[["Loja", "Guia", "Data Guia", "Material", "Descricao", "Quantidade", "Montante"]],
                 use_container_width=True,
-                hide_index=True
+                hide_index=True,
             )
+            st.markdown("</div>", unsafe_allow_html=True)
 
-            if guias_nao_encontradas:
-                st.warning(
-                    "Guias não encontradas: "
-                    + ", ".join(guias_nao_encontradas)
-                )
+st.markdown("</div>", unsafe_allow_html=True)
