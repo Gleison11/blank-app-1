@@ -50,12 +50,13 @@ st.markdown(
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.title("📦 Consulta de Validade da Carga")
 st.caption("Consulte os registros por uma loja específica.")
+st.info("Observação: lojas com três dígitos devem adicionar o L maiúsculo na frente para seguir com a consulta (Ex: Lxxx).")
 
 # ==============================
 # CARREGAR A PLANILHA
 # ==============================
 
-arquivo = Path(__file__).parent / "Atualização1.csv"
+arquivo = Path(__file__).parent / "Atualização2.csv"
 
 
 @st.cache_data
