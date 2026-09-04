@@ -56,7 +56,7 @@ st.info("Observação: lojas com três dígitos devem adicionar o L maiúsculo n
 # CARREGAR A PLANILHA
 # ==============================
 
-arquivo = Path(__file__).parent / "Atualização2.csv"
+arquivo = Path(__file__).parent / "Atualização3.csv"
 
 
 @st.cache_data
